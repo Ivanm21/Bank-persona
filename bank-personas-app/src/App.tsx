@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { apiService } from './services/api';
 
 // Simple types defined inline to avoid import issues
 interface LoginFormData {
@@ -13,6 +15,7 @@ interface Persona {
   description: string;
   color: string;
   suggestions: string[];
+  avatar: string;
 }
 
 // Dummy data
@@ -27,7 +30,8 @@ const personas: Persona[] = [
       "З якими проблемами зустрічаєшся?",
       "Яких продуктів та сервісів не вистачає?",
       "У чому для тебе цінність банку Південний?"
-    ]
+    ],
+    avatar: "/Persona_Card-business_owner.png"
   },
   {
     id: "digital-nomad",
@@ -39,7 +43,8 @@ const personas: Persona[] = [
       "Як часто використовуєш мобільний банкінг?",
       "Які функції найбільш важливі для тебе?",
       "Чи зручно керувати фінансами в дорозі?"
-    ]
+    ],
+    avatar: "/Persona_Card-digital_nomad.png"
   },
   {
     id: "top-manager",
@@ -51,7 +56,8 @@ const personas: Persona[] = [
       "Вам потрібен преміум менеджер?",
       "Які інвестиційні можливості цікавлять?",
       "Як оцінюєте рівень сервісу?"
-    ]
+    ],
+    avatar: "/Persona_Card-top_manager.png"
   },
   {
     id: "digital-resident",
@@ -63,7 +69,8 @@ const personas: Persona[] = [
       "Як часто використовуєш онлайн-платежі?",
       "Чи зручний інтерфейс банківського додатку?",
       "Які додаткові послуги потрібні?"
-    ]
+    ],
+    avatar: "/Persona_Card-digital_resident.png"
   }
 ];
 
@@ -247,10 +254,13 @@ const LoginPage: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
 };
 
 // Persona Selection Page Component
-const PersonaSelectionPage: React.FC<{ onSelectPersona: (persona: Persona) => void; onBack: () => void }> = ({ 
-  onSelectPersona, 
-  onBack 
-}) => {
+const PersonaSelectionPage: React.FC = () => {
+  const navigate = useNavigate();
+  
+  const handleSelectPersona = (personaId: string) => {
+    navigate(`/chat/${personaId}`);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -261,20 +271,25 @@ const PersonaSelectionPage: React.FC<{ onSelectPersona: (persona: Persona) => vo
         </h1>
         
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {personas.map((persona) => (
               <div
                 key={persona.id}
-                onClick={() => onSelectPersona(persona)}
-                className="relative h-80 rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-200"
-                style={{ backgroundColor: persona.color }}
+                onClick={() => handleSelectPersona(persona.id)}
+                className="bg-white p-6 rounded-lg cursor-pointer hover:shadow-lg transition-shadow border-2"
+                style={{ borderColor: persona.color }}
               >
-                <div className="absolute inset-0 bg-black/20"></div>
-                <div className="absolute bottom-6 left-6">
-                  <h3 className="text-3xl font-forum text-white">
-                    {persona.displayName}
-                  </h3>
-                </div>
+                <img
+                  src={persona.avatar}
+                  alt={persona.displayName}
+                  className="w-32 h-32 rounded-full mx-auto mb-4"
+                />
+                <h3 className="text-xl font-semibold text-center mb-2">
+                  {persona.displayName}
+                </h3>
+                <p className="text-sm text-gray-600 text-center">
+                  {persona.description}
+                </p>
               </div>
             ))}
           </div>
@@ -286,12 +301,13 @@ const PersonaSelectionPage: React.FC<{ onSelectPersona: (persona: Persona) => vo
 
 // Chat Page Component
 const ChatPage: React.FC<{ persona: Persona; onBack: () => void }> = ({ persona, onBack }) => {
-  const [messages, setMessages] = useState<Array<{ id: string; text: string; isUser: boolean }>>([
+  const [messages, setMessages] = useState<Array<{ id: string; text: string; isUser: boolean; isLoading?: boolean }>>([
     { id: '1', text: `Привіт! Я ${persona.displayName}. Чим можу допомогти?`, isUser: false }
   ]);
+  const [isSending, setIsSending] = useState(false);
   const [inputMessage, setInputMessage] = useState('');
 
-  const handleSendMessage = (messageText: string) => {
+  const handleSendMessage = async (messageText: string) => {
     if (!messageText.trim()) return;
 
     const userMessage = {
@@ -300,18 +316,38 @@ const ChatPage: React.FC<{ persona: Persona; onBack: () => void }> = ({ persona,
       isUser: true,
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    setInputMessage('');
+    const tempBotMessage = {
+      id: (Date.now() + 1).toString(),
+      text: "...",
+      isUser: false,
+      isLoading: true,
+    };
 
-    // Simulate bot response
-    setTimeout(() => {
-      const botMessage = {
-        id: (Date.now() + 1).toString(),
-        text: `Дякую за ваше повідомлення про "${messageText}". Я ${persona.displayName} і готовий допомогти!`,
-        isUser: false,
-      };
-      setMessages(prev => [...prev, botMessage]);
-    }, 1000);
+    setMessages(prev => [...prev, userMessage, tempBotMessage]);
+    setInputMessage('');
+    setIsSending(true);
+
+    try {
+      const response = await apiService.sendMessageToChat(persona.id, messageText);
+      const responseText = Array.isArray(response) && response.length > 0 
+        ? response[0].output 
+        : "Вибачте, відповідь не може бути оброблена";
+      
+      setMessages(prev => prev.map(msg => 
+        msg.id === tempBotMessage.id 
+          ? { id: msg.id, text: responseText, isUser: false }
+          : msg
+      ));
+    } catch (error) {
+      setMessages(prev => prev.map(msg => 
+        msg.id === tempBotMessage.id 
+          ? { id: msg.id, text: "Вибачте, сталася помилка. Спробуйте ще раз.", isUser: false }
+          : msg
+      ));
+      console.error('Error sending message:', error);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -375,7 +411,7 @@ const ChatPage: React.FC<{ persona: Persona; onBack: () => void }> = ({ persona,
                   message.isUser
                     ? 'bg-primary text-white'
                     : 'bg-white text-text'
-                }`}
+                } ${message.isLoading ? 'animate-pulse' : ''}`}
               >
                 <p className="text-base font-ibm">{message.text}</p>
               </div>
@@ -407,44 +443,44 @@ const ChatPage: React.FC<{ persona: Persona; onBack: () => void }> = ({ persona,
   );
 };
 
+// ROUTES
+export const ROUTES = {
+  LOGIN: '/login',
+  PERSONAS: '/personas',
+  CHAT: '/chat',
+};
+
 // Main App Component
 function App() {
-  const [currentPage, setCurrentPage] = useState<'login' | 'personas' | 'chat'>('login');
-  const [selectedPersona, setSelectedPersona] = useState<Persona | null>(null);
+  return (
+    <Router>
+      <AppRoutes />
+    </Router>
+  );
+}
 
+function AppRoutes() {
+  const navigate = useNavigate();
   const handleLogin = () => {
-    setCurrentPage('personas');
+    navigate(ROUTES.PERSONAS);
   };
 
-  const handleSelectPersona = (persona: Persona) => {
-    setSelectedPersona(persona);
-    setCurrentPage('chat');
-  };
-
-  const handleBackToPersonas = () => {
-    setCurrentPage('personas');
-  };
-
-  const handleBackToLogin = () => {
-    setCurrentPage('login');
+  const handleBack = () => {
+    navigate(ROUTES.PERSONAS);
   };
 
   return (
-    <div className="App">
-      {currentPage === 'login' && <LoginPage onLogin={handleLogin} />}
-      {currentPage === 'personas' && (
-        <PersonaSelectionPage 
-          onSelectPersona={handleSelectPersona} 
-          onBack={handleBackToLogin}
-        />
-      )}
-      {currentPage === 'chat' && selectedPersona && (
+    <Routes>
+      <Route path={ROUTES.LOGIN} element={<LoginPage onLogin={handleLogin} />} />
+      <Route path={ROUTES.PERSONAS} element={<PersonaSelectionPage />} />
+      <Route path={`${ROUTES.CHAT}/:personaId`} element={
         <ChatPage 
-          persona={selectedPersona} 
-          onBack={handleBackToPersonas}
+          persona={personas.find(p => p.id === useParams().personaId) || personas[0]}
+          onBack={handleBack}
         />
-      )}
-    </div>
+      } />
+      <Route path="/" element={<Navigate to={ROUTES.LOGIN} replace />} />
+    </Routes>
   );
 }
 

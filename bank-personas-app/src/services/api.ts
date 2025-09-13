@@ -1,6 +1,13 @@
 import axios from 'axios';
-import { WebhookRequest, ApiResponse } from '../types';
+import type { WebhookRequest, ApiResponse } from '../types';
 import { API_ENDPOINT } from '../utils/constants';
+
+const personaMapping: Record<string, string> = {
+  'top-manager': 'ТОП',
+  'business-owner': 'КБС',
+  'digital-resident': 'ТОП',
+  'digital-nomad': 'КБС'
+};
 
 class ApiService {
   private baseURL = API_ENDPOINT;
@@ -33,6 +40,14 @@ class ApiService {
         error: 'An unexpected error occurred',
       };
     }
+  }
+
+  async sendMessageToChat(personaId: string, message: string) {
+    const response = await axios.post(this.baseURL, {
+      persona: personaMapping[personaId],
+      message
+    });
+    return response.data;
   }
 }
 
