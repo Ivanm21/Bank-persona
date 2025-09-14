@@ -20,18 +20,13 @@ const PersonaSelectionPage: React.FC = () => {
             <div
               key={persona.id}
               onClick={() => handlePersonaClick(persona.id)}
-              className="cursor-pointer transform hover:scale-105 transition-transform duration-200"
+              className="cursor-pointer transform hover:scale-105 transition-transform duration-200 w-full relative overflow-hidden"
             >
-              <div
-                style={{
-                  width: '100%',
-                  paddingTop: '75%', // 4:3 aspect ratio
-                  backgroundImage: `url(${persona.avatar})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
-                }}
+              <img
+                src={persona.avatar}
+                alt={persona.displayName}
+                className="w-full h-full object-cover"
+                style={{ aspectRatio: '4/3' }}
               />
             </div>
           ))}

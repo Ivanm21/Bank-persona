@@ -43,7 +43,7 @@ class ApiService {
   }
 
   async sendMessageToChat(personaId: string, message: string) {
-    const response = await axios.post(this.baseURL, {
+    const response = await axios.post('/api/webhook/56ccfe3e-feb3-4712-a9e3-b25be1d7b87a', {
       persona: personaMapping[personaId],
       message
     });
