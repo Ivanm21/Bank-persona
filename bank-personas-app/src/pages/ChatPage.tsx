@@ -11,18 +11,78 @@ interface ChatPageProps {
 }
 
 const ChatPage: React.FC<ChatPageProps> = ({ persona, onBack }) => {
-  const [messages, setMessages] = useState<Array<{ id: string; text: string; isUser: boolean; isLoading?: boolean }>>([]);
+  const [messages, setMessages] = useState<Array<{ id: string; text: string; isUser: boolean; isLoading?: boolean; isTyping?: boolean }>>([]);
   const [isSending, setIsSending] = useState(false);
   const [inputMessage, setInputMessage] = useState('');
   const [chatId, setChatId] = useState<string | null>(null);
+  const [showPersonaInHeader, setShowPersonaInHeader] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const personaHeaderRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
 
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
       const element = scrollAreaRef.current;
-      element.scrollTop = element.scrollHeight;
+      // Use requestAnimationFrame to ensure DOM is updated
+      requestAnimationFrame(() => {
+        element.scrollTo({
+          top: element.scrollHeight,
+          behavior: 'smooth'
+        });
+      });
     }
+  };
+
+  const scrollToBottomImmediate = () => {
+    if (scrollAreaRef.current) {
+      const element = scrollAreaRef.current;
+      // Use requestAnimationFrame to ensure DOM is updated
+      requestAnimationFrame(() => {
+        element.scrollTop = element.scrollHeight;
+      });
+    }
+  };
+
+  const forceScrollToBottom = () => {
+    if (scrollAreaRef.current) {
+      const element = scrollAreaRef.current;
+      // Multiple attempts to ensure scrolling works
+      setTimeout(() => {
+        element.scrollTop = element.scrollHeight;
+      }, 0);
+      setTimeout(() => {
+        element.scrollTop = element.scrollHeight;
+      }, 10);
+      setTimeout(() => {
+        element.scrollTop = element.scrollHeight;
+      }, 50);
+    }
+  };
+
+  const typewriterEffect = (messageId: string, fullText: string, speed: number = 30) => {
+    let currentIndex = 0;
+    const interval = setInterval(() => {
+      if (currentIndex <= fullText.length) {
+        setMessages(prev => prev.map(msg => 
+          msg.id === messageId 
+            ? { ...msg, text: fullText.slice(0, currentIndex), isTyping: currentIndex < fullText.length }
+            : msg
+        ));
+        currentIndex++;
+        // Scroll during typing to keep message visible
+        scrollToBottomImmediate();
+      } else {
+        clearInterval(interval);
+        // Mark typing as complete
+        setMessages(prev => prev.map(msg => 
+          msg.id === messageId 
+            ? { ...msg, isTyping: false }
+            : msg
+        ));
+        // Final scroll to ensure everything is visible
+        scrollToBottom();
+      }
+    }, speed);
   };
 
   useEffect(() => {
@@ -30,7 +90,41 @@ const ChatPage: React.FC<ChatPageProps> = ({ persona, onBack }) => {
     requestAnimationFrame(() => {
       scrollToBottom();
     });
+    // Also force scroll when messages change
+    forceScrollToBottom();
   }, [messages]);
+
+  // Handle scroll to show/hide persona in header
+  useEffect(() => {
+    const handleScroll = () => {
+      if (personaHeaderRef.current && scrollAreaRef.current) {
+        const personaRect = personaHeaderRef.current.getBoundingClientRect();
+        const scrollAreaRect = scrollAreaRef.current.getBoundingClientRect();
+        
+        // Check if persona section is completely above the visible area
+        // Only show in header when the entire persona section is out of view
+        const isPersonaOutOfView = personaRect.bottom < scrollAreaRect.top;
+        console.log('Scroll detection:', {
+          personaBottom: personaRect.bottom,
+          scrollAreaTop: scrollAreaRect.top,
+          isPersonaOutOfView,
+          showPersonaInHeader: isPersonaOutOfView
+        });
+        setShowPersonaInHeader(isPersonaOutOfView);
+      }
+    };
+
+    const scrollElement = scrollAreaRef.current;
+    if (scrollElement) {
+      scrollElement.addEventListener('scroll', handleScroll);
+      // Check initial state
+      handleScroll();
+      
+      return () => {
+        scrollElement.removeEventListener('scroll', handleScroll);
+      };
+    }
+  }, []);
 
   // Initialize chat session and load messages
   useEffect(() => {
@@ -98,8 +192,8 @@ const ChatPage: React.FC<ChatPageProps> = ({ persona, onBack }) => {
     setInputMessage('');
     setIsSending(true);
     
-    // Force scroll to bottom when user sends message
-    setTimeout(scrollToBottom, 50);
+    // Force scroll to bottom immediately when user sends message
+    forceScrollToBottom();
 
     try {
       // Update chat session timestamp
@@ -110,12 +204,22 @@ const ChatPage: React.FC<ChatPageProps> = ({ persona, onBack }) => {
       
       // Check if N8N returned a response directly
       if (response && Array.isArray(response) && response.length > 0 && response[0].output) {
-        // N8N returned response directly, update the temp message
+        // N8N returned response directly, start typewriter effect
+        const fullText = response[0].output;
         setMessages(prev => prev.map(msg => 
           msg.id === tempBotMessage.id 
-            ? { id: msg.id, text: response[0].output, isUser: false }
+            ? { id: msg.id, text: "", isUser: false, isTyping: true }
             : msg
         ));
+        // Start typewriter effect after a short delay
+        setTimeout(() => {
+          typewriterEffect(tempBotMessage.id, fullText, 30);
+        }, 100);
+        
+        // Ensure scroll to bottom when response starts
+        setTimeout(() => {
+          scrollToBottomImmediate();
+        }, 150);
       } else {
         // N8N saved to database, reload messages
         // Wait a moment for N8N to process and save messages
@@ -129,20 +233,50 @@ const ChatPage: React.FC<ChatPageProps> = ({ persona, onBack }) => {
           isUser: msg.role === 'user',
         }));
         console.log('Reloading messages after N8N response:', uiMessages.length, 'messages');
-        setMessages(uiMessages);
+        
+        // Apply typewriter effect to the last bot message
+        const lastBotMessage = uiMessages.filter(msg => !msg.isUser).pop();
+        if (lastBotMessage) {
+          // Set all messages except the last bot message
+          const otherMessages = uiMessages.filter(msg => msg.id !== lastBotMessage.id);
+          setMessages([...otherMessages, { ...lastBotMessage, text: "", isTyping: true }]);
+          
+          // Start typewriter effect for the last bot message
+          setTimeout(() => {
+            typewriterEffect(lastBotMessage.id, lastBotMessage.text, 30);
+          }, 100);
+          
+          // Ensure scroll to bottom when reloading messages
+          setTimeout(() => {
+            scrollToBottomImmediate();
+          }, 150);
+        } else {
+          setMessages(uiMessages);
+          // Scroll to bottom for regular message reload
+          setTimeout(() => {
+            scrollToBottomImmediate();
+          }, 100);
+        }
       }
       
       // Force scroll to bottom when bot responds
       setTimeout(scrollToBottom, 100);
     } catch (error) {
+      const errorText = "Вибачте, сталася помилка. Спробуйте ще раз.";
       setMessages(prev => prev.map(msg => 
         msg.id === tempBotMessage.id 
-          ? { id: msg.id, text: "Вибачте, сталася помилка. Спробуйте ще раз.", isUser: false }
+          ? { id: msg.id, text: "", isUser: false, isTyping: true }
           : msg
       ));
+      // Start typewriter effect for error message
+      setTimeout(() => {
+        typewriterEffect(tempBotMessage.id, errorText, 30);
+      }, 100);
       
       // Force scroll to bottom on error
-      setTimeout(scrollToBottom, 100);
+      setTimeout(() => {
+        scrollToBottomImmediate();
+      }, 150);
       console.error('Error sending message:', error);
     } finally {
       setIsSending(false);
@@ -156,15 +290,23 @@ const ChatPage: React.FC<ChatPageProps> = ({ persona, onBack }) => {
 
   const handleSuggestionClick = (suggestion: string) => {
     handleSendMessage(suggestion);
+    // Ensure scroll to bottom when suggestion is clicked
+    forceScrollToBottom();
   };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header showBackButton onBackClick={onBack} />
+      <Header 
+        showBackButton 
+        onBackClick={onBack} 
+        showPersona={showPersonaInHeader}
+        personaName={persona.displayName}
+        personaAvatar={persona.avatar}
+      />
       
       <div className="flex-1 flex flex-col max-w-4xl mx-auto px-4 w-full">
         {/* Persona Header */}
-        <div className="text-center mb-16 pt-8">
+        <div ref={personaHeaderRef} className="text-center mb-16 pt-8">
           <div className="w-20 h-20 rounded-full mx-auto mb-4 overflow-hidden">
             <img
               src={persona.avatar}
@@ -220,7 +362,12 @@ const ChatPage: React.FC<ChatPageProps> = ({ persona, onBack }) => {
                       : 'bg-white text-text'
                   } ${message.isLoading ? 'animate-pulse' : ''}`}
                 >
-                  <p className="text-base font-ibm">{message.text}</p>
+                  <p className="text-base font-ibm">
+                    {message.text}
+                    {message.isTyping && (
+                      <span className="inline-block w-0.5 h-4 bg-current ml-0.5 animate-pulse">|</span>
+                    )}
+                  </p>
                 </div>
               </div>
             ))}

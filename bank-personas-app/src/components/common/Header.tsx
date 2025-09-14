@@ -3,11 +3,21 @@ import React from 'react';
 interface HeaderProps {
   showBackButton?: boolean;
   onBackClick?: () => void;
+  showPersona?: boolean;
+  personaName?: string;
+  personaAvatar?: string;
 }
 
-const Header: React.FC<HeaderProps> = ({ showBackButton = false, onBackClick }) => {
+const Header: React.FC<HeaderProps> = ({ 
+  showBackButton = false, 
+  onBackClick, 
+  showPersona = false, 
+  personaName = '', 
+  personaAvatar = '' 
+}) => {
+  console.log('Header props:', { showBackButton, showPersona, personaName, personaAvatar });
   return (
-    <header className="flex items-center p-6 bg-background">
+    <header className="sticky top-0 z-50 flex items-center p-6 bg-background border-b border-gray-200">
       <div className="flex items-center gap-2">
         <div className="w-4 h-4 relative">
           <svg width="16" height="16" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -41,6 +51,19 @@ const Header: React.FC<HeaderProps> = ({ showBackButton = false, onBackClick }) 
           </svg>
           <span className="text-xs font-ibm uppercase">назад до персон</span>
         </button>
+      )}
+
+      {showPersona && (
+        <div className="flex items-center gap-2 ml-6">
+          <div className="w-6 h-6 rounded-full overflow-hidden">
+            <img
+              src={personaAvatar}
+              alt={personaName}
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <span className="text-sm font-forum text-text">{personaName}</span>
+        </div>
       )}
     </header>
   );
