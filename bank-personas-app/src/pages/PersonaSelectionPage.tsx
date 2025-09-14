@@ -11,25 +11,27 @@ const PersonaSelectionPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#ECF0EF]">
+    <div className="h-screen bg-[#ECF0EF] flex flex-col overflow-hidden">
       <Header />
-      <main className="max-w-[1440px] mx-auto px-6 py-8">
-        <h1 className="font-forum text-5xl text-center mb-12">Оберіть персону</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-          {personas.map((persona) => (
-            <div
-              key={persona.id}
-              onClick={() => handlePersonaClick(persona.id)}
-              className="cursor-pointer transform hover:scale-105 transition-transform duration-200 w-full relative overflow-hidden"
-            >
-              <img
-                src={persona.avatar}
-                alt={persona.displayName}
-                className="w-full h-full object-cover"
+      <main className="flex-1 flex flex-col items-center px-4 py-2 w-full min-h-0" style={{ paddingTop: '25%', paddingBottom: '10%' }}>
+        <h1 className="font-forum text-xl sm:text-2xl lg:text-3xl text-center mb-2 lg:mb-4 max-w-full" style={{ marginTop: '-10px' }}>Оберіть персону</h1>
+        <div className="w-full max-w-4xl mx-auto px-2 flex items-center justify-center min-h-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 lg:gap-4 w-full h-full max-h-[50vh]">
+            {personas.map((persona) => (
+              <div
+                key={persona.id}
+                onClick={() => handlePersonaClick(persona.id)}
+                className="cursor-pointer hover:shadow-xl transition-shadow duration-200 w-full relative overflow-hidden rounded-lg shadow-lg max-w-full h-full"
                 style={{ aspectRatio: '4/3' }}
-              />
-            </div>
-          ))}
+              >
+                <img
+                  src={persona.avatar}
+                  alt={persona.displayName}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
         </div>
       </main>
     </div>
