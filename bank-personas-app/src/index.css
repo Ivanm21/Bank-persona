@@ -43,7 +43,7 @@ body {
   background: #00A599;
 }
 
-/* Override default input and button border-radius */
-input, button {
+/* Override default input border-radius */
+input {
   border-radius: 0 !important;
 }
