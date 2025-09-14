@@ -28,6 +28,13 @@ const PersonaSelectionPage: React.FC = () => {
                   src={persona.avatar}
                   alt={persona.displayName}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    console.error('Image failed to load:', persona.avatar);
+                    console.error('Persona:', persona);
+                  }}
+                  onLoad={() => {
+                    console.log('Image loaded successfully:', persona.avatar);
+                  }}
                 />
               </div>
             ))}

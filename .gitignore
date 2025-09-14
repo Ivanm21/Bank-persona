@@ -85,7 +85,7 @@ jspm_packages/
 
 # Gatsby files
 .cache/
-public
+# public - commented out to allow persona images to be deployed
 
 # Storybook build outputs
 .out

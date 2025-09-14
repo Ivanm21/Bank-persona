@@ -22,7 +22,7 @@ export const personas: Persona[] = [
       "У чому для тебе цінність банку Південний?"
     ],
     color: "#00A599",
-    avatar: "/Persona_Card-buisiness_owner.png"
+    avatar: "/Persona_Card-business_owner.png"
   },
   {
     id: "digital-nomad",
