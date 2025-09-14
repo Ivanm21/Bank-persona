@@ -330,10 +330,11 @@ const ChatPage: React.FC<{ persona: Persona; onBack: () => void }> = ({ persona,
           // Convert database messages to UI format
           const uiMessages = messages.map(msg => ({
             id: msg.id,
-            text: msg.message,
-            isUser: msg.is_user,
+            text: msg.content,
+            isUser: msg.role === 'user',
           }));
 
+          console.log('Loading messages from database:', uiMessages.length, 'messages');
           setMessages(uiMessages);
         }
       } catch (error) {
@@ -341,8 +342,11 @@ const ChatPage: React.FC<{ persona: Persona; onBack: () => void }> = ({ persona,
       }
     };
 
-    initializeChat();
-  }, [user, persona.id]);
+    // Only initialize if we don't have a chatId yet
+    if (!chatId) {
+      initializeChat();
+    }
+  }, [user, persona.id, chatId]);
 
   const handleSendMessage = async (messageText: string) => {
     if (!messageText.trim() || !chatId || !user) return;
@@ -368,26 +372,35 @@ const ChatPage: React.FC<{ persona: Persona; onBack: () => void }> = ({ persona,
     setTimeout(scrollToBottom, 50);
 
     try {
-      // Save user message to database
-      await chatService.saveMessage(chatId, user.id, persona.id, messageText, true);
-      
       // Update chat session timestamp
       await chatService.updateChatSession(chatId);
 
-      // Get AI response
-      const response = await apiService.sendMessageToChat(persona.id, messageText);
-      const responseText = Array.isArray(response) && response.length > 0 
-        ? response[0].output 
-        : "Вибачте, відповідь не може бути оброблена";
+      // Send message to N8N (N8N will handle all message storage)
+      const response = await apiService.sendMessageToChat(persona.id, messageText, chatId, user.id);
       
-      // Save AI response to database
-      await chatService.saveMessage(chatId, user.id, persona.id, responseText, false);
-      
-      setMessages(prev => prev.map(msg => 
-        msg.id === tempBotMessage.id 
-          ? { id: msg.id, text: responseText, isUser: false }
-          : msg
-      ));
+      // Check if N8N returned a response directly
+      if (response && Array.isArray(response) && response.length > 0 && response[0].output) {
+        // N8N returned response directly, update the temp message
+        setMessages(prev => prev.map(msg => 
+          msg.id === tempBotMessage.id 
+            ? { id: msg.id, text: response[0].output, isUser: false }
+            : msg
+        ));
+      } else {
+        // N8N saved to database, reload messages
+        // Wait a moment for N8N to process and save messages
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Reload messages from N8N storage
+        const { messages: updatedMessages } = await chatService.getChatMessages(chatId);
+        const uiMessages = updatedMessages.map(msg => ({
+          id: msg.id,
+          text: msg.content,
+          isUser: msg.role === 'user',
+        }));
+        console.log('Reloading messages after N8N response:', uiMessages.length, 'messages');
+        setMessages(uiMessages);
+      }
       
       // Force scroll to bottom when bot responds
       setTimeout(scrollToBottom, 100);

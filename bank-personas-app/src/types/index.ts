@@ -36,4 +36,6 @@ export interface ApiResponse {
 export interface WebhookRequest {
   persona: string;
   message: string;
+  chatSessionId?: string;
+  userId?: string;
 }

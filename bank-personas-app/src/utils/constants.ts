@@ -1,4 +1,4 @@
-export const API_ENDPOINT = 'https://ivan-m.app.n8n.cloud/webhook/56ccfe3e-feb3-4712-a9e3-b25be1d7b87a';
+export const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT || 'https://ivan-m.app.n8n.cloud/webhook/56ccfe3e-feb3-4712-a9e3-b25be1d7b87a';
 
 export interface Persona {
   id: string;
