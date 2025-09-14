@@ -198,13 +198,13 @@ const ChatPage: React.FC = () => {
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             placeholder="Поставте запитання"
-            className="flex-1 px-4 py-4 bg-white rounded-lg text-text placeholder-text/60 focus:outline-none focus:ring-2 focus:ring-primary"
+            className="flex-1 px-4 py-4 bg-white text-text placeholder-text/60 focus:outline-none focus:ring-2 focus:ring-primary"
             disabled={isLoading}
           />
           <button
             type="submit"
             disabled={!inputMessage.trim() || isLoading}
-            className="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-12 h-12 bg-primary flex items-center justify-center text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <svg
               width="24"

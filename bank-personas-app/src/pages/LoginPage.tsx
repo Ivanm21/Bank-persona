@@ -79,7 +79,7 @@ const LoginPage: React.FC = () => {
                 placeholder="Введіть електронну пошту"
                 value={formData.email}
                 onChange={handleInputChange}
-                className={`w-full px-4 py-2 bg-white border rounded-lg text-text placeholder-text/60 focus:outline-none focus:ring-2 focus:ring-primary ${
+                className={`w-full px-4 py-2 bg-white border text-text placeholder-text/60 focus:outline-none focus:ring-2 focus:ring-primary ${
                   errors.email ? 'border-red-500' : 'border-gray-200'
                 }`}
               />
@@ -95,7 +95,7 @@ const LoginPage: React.FC = () => {
                 placeholder="Введіть пароль"
                 value={formData.password}
                 onChange={handleInputChange}
-                className={`w-full px-4 py-2 bg-white border rounded-lg text-text placeholder-text/60 focus:outline-none focus:ring-2 focus:ring-primary ${
+                className={`w-full px-4 py-2 bg-white border text-text placeholder-text/60 focus:outline-none focus:ring-2 focus:ring-primary ${
                   errors.password ? 'border-red-500' : 'border-gray-200'
                 }`}
               />
@@ -106,7 +106,7 @@ const LoginPage: React.FC = () => {
             
             <button
               type="submit"
-              className="w-full bg-primary text-white py-4 rounded-lg font-forum text-lg hover:bg-primary/90 transition-colors"
+              className="w-full bg-primary text-white py-4 font-forum text-lg hover:bg-primary/90 transition-colors"
             >
               Увійти
             </button>

@@ -42,3 +42,8 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #00A599;
 }
+
+/* Override default input and button border-radius */
+input, button {
+  border-radius: 0 !important;
+}
